@@ -29,8 +29,11 @@ public final class QQWhitelistPlugin extends JavaPlugin {
             return;
         }
 
+        // 检查 API 可用性
         try {
-            Class.forName("cn.huohuas001.huhobot.spigot.api.BotCustomCommand");
+            Class.forName("cn.huohuas001.huhobot.spigot.api.BotCustomCommand",
+                    true, huhoBot.getClass().getClassLoader());
+            getLogger().info("HuHoBot API 加载成功");
         } catch (ClassNotFoundException e) {
             getLogger().severe("HuHoBot API 加载失败: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
@@ -41,9 +44,11 @@ public final class QQWhitelistPlugin extends JavaPlugin {
         codeManager = new CodeManager(this);
         bindManager = new BindManager(this);
 
-        // 注册事件
+        // 注册事件 - BotCommandListener 通过反射注册，绕过类加载器隔离
+        BotCommandListener botListener = new BotCommandListener(this);
+        botListener.registerViaReflection();
+
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
-        getServer().getPluginManager().registerEvents(new BotCommandListener(this), this);
 
         // 注册命令
         getCommand("bindcode").setExecutor(new BindCodeCommand(this));
@@ -58,9 +63,6 @@ public final class QQWhitelistPlugin extends JavaPlugin {
         getLogger().info("HuHoSTDWhiteList 已卸载");
     }
 
-    /**
-     * 获取回报消息
-     */
     public String getMessage(String key) {
         return getConfig().getString("messages." + key, key);
     }
